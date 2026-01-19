@@ -81,6 +81,7 @@ class AppGUI(QMainWindow):
         self.cuentas_mapa: dict[str, str] = {}
         self.categorias_mapa: dict[str, str] = {}
         self.subcategorias_mapa: dict[str, str] = {}
+        self.proyectos_mapa: dict[str, str] = {}
 
         # Configuración de ventana
         self.setWindowTitle(APP_FULL_NAME)
@@ -376,6 +377,18 @@ class AppGUI(QMainWindow):
             "📈 Rendimientos (Preview)", self._abrir_preview_rendimientos
         )
         act_rend.setShortcut("Ctrl+R")
+
+        # NUEVA ACCIÓN: Exportador PROGRAIN
+        reportes_menu.addSeparator()  # Separador visual
+        
+        act_prograin = reportes_menu.addAction(
+            "💾 Exportar a PROGRAIN 5.0",
+            self._abrir_exportador_prograin
+        )
+        act_prograin.setShortcut("Ctrl+Shift+P")
+        act_prograin.setToolTip(
+            "Exporta transacciones (gastos e ingresos) al formato Excel compatible con PROGRAIN 5.0"
+        )
 
         # Menú Configuración
         config_menu = menubar.addMenu("Configuración")
@@ -1509,6 +1522,20 @@ class AppGUI(QMainWindow):
                 if cid:
                     by_cat.setdefault(cid, {})[sid] = nom
 
+            # Intentar cargar mapa de proyectos (opcional)
+            time.sleep(0.3)
+            try:
+                self.proyectos_mapa = {
+                    str(k): v
+                    for k, v in (
+                        self.fm.obtener_mapa_global("proyectos") or {}
+                    ).items()
+                }
+                logger.info(f"Mapa de proyectos cargado: {len(self.proyectos_mapa)} proyectos")
+            except Exception as e:
+                logger.warning(f"No se pudo cargar mapa de proyectos: {e}")
+                self.proyectos_mapa = {}
+
             logger.info(
                 "Mapas cargados. Actualizando título y poblando tabs..."
             )
@@ -1801,3 +1828,45 @@ class AppGUI(QMainWindow):
             parent=self,
         )
         dlg.exec()
+
+    def _abrir_exportador_prograin(self):
+        """Abre el diálogo de exportación a PROGRAIN 5.0"""
+        try:
+            from dialogos.dialogo_exportador_prograin import DialogoExportadorPrograin
+            
+            # Validar que existan los mapas necesarios
+            if not hasattr(self, 'equipos_mapa') or not self.equipos_mapa:
+                QMessageBox.warning(
+                    self,
+                    "Datos no disponibles",
+                    "No se han cargado los datos necesarios.\n"
+                    "Por favor, espere a que la aplicación termine de cargar."
+                )
+                return
+            
+            # Preparar todos los mapas necesarios
+            mapas = {
+                'equipos': self.equipos_mapa,
+                'clientes': self.clientes_mapa,
+                'cuentas': self.cuentas_mapa,
+                'categorias': self.categorias_mapa,
+                'subcategorias': self.subcategorias_mapa,
+                'proyectos': self.proyectos_mapa
+            }
+            
+            # Abrir diálogo
+            dialogo = DialogoExportadorPrograin(
+                fm=self.fm,
+                mapas=mapas,
+                config=self.config,
+                parent=self
+            )
+            dialogo.exec()
+            
+        except Exception as e:
+            logger.error(f"Error abriendo exportador PROGRAIN: {e}", exc_info=True)
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"No se pudo abrir el exportador PROGRAIN:\n{str(e)}"
+            )
