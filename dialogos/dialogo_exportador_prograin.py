@@ -128,7 +128,7 @@ class DialogoExportadorPrograin(QDialog):
         self.fm = fm
         self.mapas = mapas
         self.config = config
-        self.moneda_symbol = config.get('moneda', 'RD$')
+        self.moneda_symbol = config.get('app', {}).get('moneda', 'RD$')
         
         # Datos cargados
         self.transacciones_actuales = []
