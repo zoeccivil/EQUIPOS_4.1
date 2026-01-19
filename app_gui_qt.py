@@ -81,6 +81,7 @@ class AppGUI(QMainWindow):
         self.cuentas_mapa: dict[str, str] = {}
         self.categorias_mapa: dict[str, str] = {}
         self.subcategorias_mapa: dict[str, str] = {}
+        self.proyectos_mapa: dict[str, str] = {}
 
         # Configuración de ventana
         self.setWindowTitle(APP_FULL_NAME)
@@ -1520,6 +1521,20 @@ class AppGUI(QMainWindow):
                 nom = sc.get("nombre") or self.subcategorias_mapa.get(sid, "")
                 if cid:
                     by_cat.setdefault(cid, {})[sid] = nom
+
+            # Intentar cargar mapa de proyectos (opcional)
+            time.sleep(0.3)
+            try:
+                self.proyectos_mapa = {
+                    str(k): v
+                    for k, v in (
+                        self.fm.obtener_mapa_global("proyectos") or {}
+                    ).items()
+                }
+                logger.info(f"Mapa de proyectos cargado: {len(self.proyectos_mapa)} proyectos")
+            except Exception as e:
+                logger.warning(f"No se pudo cargar mapa de proyectos: {e}")
+                self.proyectos_mapa = {}
 
             logger.info(
                 "Mapas cargados. Actualizando título y poblando tabs..."
